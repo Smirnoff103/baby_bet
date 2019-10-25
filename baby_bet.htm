@@ -1,0 +1,803 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1"/>
+		<style>
+			html {
+				font: normal 12pt "Arial";				
+			}
+			table {
+				border-collapse: collapse;
+				width: 100%;
+			}
+			td, th {
+				border: 1px solid #ddd;
+				text-align: left;
+				padding: 8px;
+			}
+			tr:nth-child(even) {
+				background-color: #ddd;
+			}
+			
+			h4 {
+				margin-bottom: 0px;
+			}
+			
+			a, a:visited {
+				color: #000;
+			}
+			
+			a:hover {
+				text-decoration: none;
+			}
+			
+			.points_obtained {
+				color: #fff;
+				background-color: #000;
+				font-style: italic;
+				font-size: 75%;
+				text-decoration: underline;
+				float: right;
+			}
+			
+			.underlined {
+				color: #f00;
+				text-decoration: underline;
+				font-weight: bold;
+			}
+			
+			.first_ranking {
+				background-color: #f55;
+				color: #fff;
+			}
+			
+			#winner {
+				background-color: #6fc06f;
+			}
+			
+			#baby_data{
+				color: #fff;
+				background-color: #666;
+				font-weight: bold;
+				margin-top: 20px;
+			}
+		</style>
+		<script type="text/javascript" language="javascript">
+		var aData = Array();
+		var aShowedData = Array();
+		var aAnswer = Array();
+		const iScoreGender = 5;
+		const iScoreName = 2;
+		const iScoreYear = 2;
+		const iScoreMonth = 5;
+		const iScoreDay = 10;
+		const iScoreWeightMultiplier = 2;
+		
+		function calculate(){
+			storeData();
+			storeAnswer();
+			calculateGender();
+			calculateDate();
+			calculateWeight();
+			calculateHeight();
+			calculateName();
+			updateScore();
+			sortTableByPoints();
+		}
+		
+		function storeData(){
+			//complete array with data from table, -1 for not adding the "result baby"
+			for(i = 0; i < document.getElementsByClassName("competitor").length-1; i++){
+				aData[i] = Array();
+				aData[i][0] = i;
+				aData[i][1] = document.getElementsByClassName("competitor")[i].innerText;
+				aData[i][2] = document.getElementsByClassName("gender")[i].innerText;
+				aData[i][3] = document.getElementsByClassName("date")[i].innerText;
+				aData[i][4] = document.getElementsByClassName("weight")[i].innerText;
+				aData[i][5] = document.getElementsByClassName("height")[i].innerText;
+				aData[i][6] = document.getElementsByClassName("name")[i].innerText;
+				//score
+				aData[i][7] = 0;
+			}
+		}
+		
+		function storeAnswer(){
+			aAnswer[0] = document.getElementsByClassName("competitor")[aData.length].innerText;
+			aAnswer[1] = document.getElementsByClassName("gender")[aData.length].innerText;
+			aAnswer[2] = document.getElementsByClassName("date")[aData.length].innerText;
+			aAnswer[3] = document.getElementsByClassName("weight")[aData.length].innerText;
+			aAnswer[4] = document.getElementsByClassName("height")[aData.length].innerText;
+			aAnswer[5] = document.getElementsByClassName("name")[aData.length].innerText;
+		}
+		
+		function calculateGender() {
+			for(i = 0;i < aData.length; i++){
+				if(aData[i][2].toLowerCase() == aAnswer[1].toLowerCase()){
+					aData[i][7] += iScoreGender;
+					showGenderScore(i, iScoreGender);
+				}
+			}
+		}
+		
+		function showGenderScore(iArrayPosition, iPoints){
+			document.getElementsByClassName("gender")[iArrayPosition].innerHTML += ("<span class=\"points_obtained\"> (+" + iPoints + ")</span>");
+		}
+		
+		function calculateDate(){			
+			var sDate = aAnswer[2];
+			for(i = 0;i < aData.length; i++){
+				var iTempScore = 0;
+				var sGuessedDate = aData[i][3];
+				//split the date in year, month & day
+				var sGuessedYear = sGuessedDate.slice(sGuessedDate.lastIndexOf("/")+1);
+				var sDateYear = sDate.slice(sDate.lastIndexOf("/")+1);
+				var sGuessedMonth = sGuessedDate.substring(sGuessedDate.indexOf("/")+1, sGuessedDate.lastIndexOf("/"));
+				var sDateMonth = sDate.substring(sDate.indexOf("/")+1, sDate.lastIndexOf("/"));
+				var sGuessedDay = sGuessedDate.substr(0, sGuessedDate.indexOf("/"));
+				var sDateDay = sDate.substr(0, sDate.indexOf("/"));
+							
+				if(sGuessedDay == sDateDay){
+					showDateScore(i, iScoreDay);
+					iTempScore += iScoreDay;
+				}
+				
+				if(sGuessedMonth == sDateMonth){
+					showDateScore(i, iScoreMonth);
+					iTempScore += iScoreMonth;
+				}
+				
+				if(sGuessedYear == sDateYear){
+					showDateScore(i, iScoreYear);
+					iTempScore += iScoreYear;
+				}
+				
+				aData[i][7] += iTempScore;
+			}
+		}
+		
+		function showDateScore(iArrayPosition, iPoints){
+			document.getElementsByClassName("date")[iArrayPosition].innerHTML += ("<span class=\"points_obtained\"> (+" + iPoints + ")</span>");
+		}
+		
+		function calculateWeight(){
+			var iWeight = aAnswer[3]
+			for(i = 0;i < aData.length; i++){
+				var iGuessedWeight = aData[i][4];
+				//difference between the guessed weight and actual weight
+				var iWeightDifference = Math.round(((parseNumber(iGuessedWeight) - parseNumber(iWeight))* 100)) / 100;
+				//store the difference in a new field in the array
+				aData[i].push(Math.abs(iWeightDifference));
+			}
+			//sort array by weight difference
+			aData.sort(sortByWeight);
+			//calculating the score
+			var iAmountCompetitor = aData.length;
+			//keeping track if values are the same, user get same score, first the score itself, than the amount of same values
+			var rSameScore = [null,0];
+			for(j = 0; j < aData.length; j++){
+				var iTempScore = 0;
+				if(rSameScore[0] != aData[j][8]){
+					//simple ranking
+					rSameScore[0] = aData[j][8];
+					rSameScore[1] = 0;
+					iTempScore = (iAmountCompetitor - j) * iScoreWeightMultiplier;
+					aData[j][7] += iTempScore;
+					showWeightScore(aData[j][0], j, iTempScore);
+				}
+				else{
+					//same ranking as previous
+					rSameScore[1] += 1;
+					iTempScore = (iAmountCompetitor - (j-rSameScore[1])) * iScoreWeightMultiplier;
+					aData[j][7] += iTempScore;
+					showWeightScore(aData[j][0], j-rSameScore[1], iTempScore);
+				}
+				
+			}
+			aData.sort(sortByCompetitor);
+		}
+		
+		function showWeightScore(iArrayPosition, iPosition ,iPoints){
+			//first one has a different bg in the cell
+			if(iPosition == 0){
+				document.getElementsByClassName("weight")[iArrayPosition].classList += " first_ranking";
+			}
+			document.getElementsByClassName("weight")[iArrayPosition].innerHTML += ("<span class=\"points_obtained\"> (#" + (iPosition+1) + ", +" + iPoints + ")</span>");
+		}
+		
+		function calculateHeight(){			
+			var iHeight = aAnswer[4]
+			for(i = 0;i < aData.length; i++){
+				var iGuessedHeight = aData[i][5];
+				//difference between the guessed height and actual height
+				var iHeightDifference = Math.round(((parseNumber(iGuessedHeight) - parseNumber(iHeight))* 100)) / 100;
+				//store the difference in a new field in the array
+				aData[i].push(Math.abs(iHeightDifference));
+			}
+			//sort array by height difference
+			aData.sort(sortByHeight);
+			//calculating the score
+			var iAmountCompetitor = aData.length;
+			//keeping track if values are the same, user get same score, first the score itself, than the amount of same values
+			var rSameScore = [null,0];
+			for(j = 0; j < aData.length; j++){
+				var iTempScore = 0;
+				if(rSameScore[0] != aData[j][9]){
+					rSameScore[0] = aData[j][9];
+					rSameScore[1] = 0;
+					iTempScore = (iAmountCompetitor - j) * iScoreWeightMultiplier;
+					aData[j][7] += iTempScore;
+					showHeightScore(aData[j][0], j, iTempScore);
+				}
+				else{
+					rSameScore[1] += 1;
+					iTempScore = (iAmountCompetitor - (j-rSameScore[1])) * iScoreWeightMultiplier;
+					aData[j][7] += iTempScore;
+					showHeightScore(aData[j][0], j-rSameScore[1], iTempScore);
+				}
+			}
+			aData.sort(sortByCompetitor);
+		}
+		
+		function showHeightScore(iArrayPosition, iPosition ,iPoints){
+			//first one has a different bg in the cell
+			if(iPosition == 0){
+				document.getElementsByClassName("height")[iArrayPosition].classList += " first_ranking";
+			}
+			document.getElementsByClassName("height")[iArrayPosition].innerHTML += ("<span class=\"points_obtained\"> (#" + (iPosition+1) + ", +" + iPoints + ")</span>");
+		}
+		
+		function calculateName(){
+			for(i = 0;i < aData.length; i++){
+				var sName = aAnswer[5];
+				var sGuessedName = aData[i][6];
+				var rGuessedLettersLocation = [];
+				var iTempScore = 0;
+				//search every letter in the word
+				for(j = 0; j < sGuessedName.length; j++){
+					for(k = 0; k < sName.length; k++){
+						if(sGuessedName[j].toLowerCase() == sName[k].toLowerCase()){
+							//remove the letter that was found to avoid double score
+							sName = sName.slice(0,k) + sName.slice(k+1);
+							iTempScore++;
+							//add location of the letter for underlining afterwards in the table
+							rGuessedLettersLocation.push(j);
+							break;
+						}
+					}
+				}
+				aData[i][7] += (iTempScore * iScoreName);				
+				showNameScore(rGuessedLettersLocation, i, iTempScore * iScoreName);
+			}
+		}
+		
+		function showNameScore(rUnderlinedLettersLocation,iArrayPosition, iPoints){
+			var sName = document.getElementsByClassName("name")[iArrayPosition].innerHTML;
+			var sModifiedName = sName.split('');
+			for(j = rUnderlinedLettersLocation.length;j > 0; j--){
+				sModifiedName[rUnderlinedLettersLocation[j-1]] = '<span class="underlined">' + sModifiedName[rUnderlinedLettersLocation[j-1]] + '</span>';
+			}
+			sModifiedName = sModifiedName.join('');
+			document.getElementsByClassName("name")[iArrayPosition].innerHTML = sModifiedName + ("<span class=\"points_obtained\"> (+" + iPoints + ")</span>");
+		}
+		
+		function parseNumber(strg) {
+			var strg = strg || "";
+			var decimal = '.';
+			//remove the last 0
+			if(strg.charAt(strg.length - 1) == '0'){
+				strg = strg.slice(0, -1);
+			}
+			strg = strg.replace(/[^0-9$.,]/g, '');
+			if(strg.indexOf(',') > strg.indexOf('.')) decimal = ',';
+			if((strg.match(new RegExp("\\" + decimal,"g")) || []).length > 1) decimal="";
+			if (decimal != "" && (strg.length - strg.indexOf(decimal) - 1 == 4) && strg.indexOf("0" + decimal)!==0) decimal = "";
+			strg = strg.replace(new RegExp("[^0-9$" + decimal + "]","g"), "");
+			strg = strg.replace(',', '.');
+			return parseFloat(strg);
+		}   
+		
+		function sortByWeight(a, b) {
+			if (a[8] === b[8]) {
+				return 0;
+			}
+			else {
+				return (a[8] < b[8]) ? -1 : 1;
+			}
+		}
+		
+		function sortByHeight(a, b) {
+			if (a[9] === b[9]) {
+				return 0;
+			}
+			else {
+				return (a[9] < b[9]) ? -1 : 1;
+			}
+		}
+		
+		function sortByCompetitor(a, b){
+			if (a[0] === b[0]) {
+				return 0;
+			}
+			else {
+				return (a[0] < b[0]) ? -1 : 1;
+			}
+		}
+		
+		function sortByPoint(a, b){
+			if (a[6] === b[6]) {
+				return 0;
+			}
+			else {
+				return (parseInt(a[6]) > parseInt(b[6])) ? -1 : 1;
+			}
+		}
+		
+		function updateScore(){
+			for(i = 0;i < aData.length; i++){
+				document.getElementsByClassName("points")[i].innerHTML = aData[i][7];
+			}
+		}
+		
+		function sortTableByPoints(){
+			copyTable(document.getElementById("table"));
+			clearTable(document.getElementById("table"));
+			//redraw new table
+			redrawTable(document.getElementById("table"));
+		}
+		
+		function copyTable(dTable){
+			for(i = 0; i < dTable.rows.length; i++){
+				aShowedData[i] = Array();
+				for(j = 0; j < dTable.rows[i].cells.length; j++){
+					aShowedData[i][j] = dTable.rows[i].cells[j].innerHTML;
+				}
+			}
+			//remove the first entry (the header one)
+			aShowedData.splice(0, 1);
+				
+			//sort array by points earned
+			aShowedData.sort(sortByPoint);
+		}
+		
+		function clearTable(dTable){
+			var iRows = dTable.rows;
+			for(i = (iRows.length-1); i > 0; i--){
+				dTable.deleteRow(i);
+			}
+		}
+		
+		function redrawTable(dTable){
+			for(i = 0; i < aShowedData.length; i++){
+				//new row
+				var dNewRow = dTable.insertRow(dTable.rows.length);
+				//competitor who wons get green background
+				if(i == 0){
+					dNewRow.id = "winner";
+				}
+				for(j = 0; j < aShowedData[i].length; j++) {
+					var dNewCell  = dNewRow.insertCell(j);
+					//put data in new cell & check for the #1 place class
+					dNewCell.innerHTML = aShowedData[i][j];
+					//if it's the first in it's category give it a red background
+					if(aShowedData[i][j].indexOf("#1,") != -1){
+						//console.log("bingo," + aShowedData[i][j]);
+						dNewCell.classList += "first_ranking";
+					}
+				}
+			}
+		}
+		
+		</script>
+		<title>Baby bet</title>
+	</head>
+	<body>
+		<!-- submissions -->
+		<div>
+			<table id="table">
+				<tr>
+					<th>Competitor</th>
+					<th>Gender</th>
+					<th>Birth date</th>
+					<th>Weight</th>
+					<th>Height</th>
+					<th>Name</th>
+					<th>Points</th>
+				</tr>
+				<!-- Competitor 1 -->
+				<tr>
+					<td class="competitor">Charles</td>
+					<td class="gender">F</td>
+					<td class="date">27/12/2017</td>
+					<td class="weight">3,600</td>
+					<td class="height">50</td>
+					<td class="name">Jennifer</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 2 -->
+				<tr>
+					<td class="competitor">Jessie</td>
+					<td class="gender">F</td>
+					<td class="date">26/12/2017</td>
+					<td class="weight">3,550</td>
+					<td class="height">51</td>
+					<td class="name">Wilma</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 3 -->
+				<tr>
+					<td class="competitor">Dustin</td>
+					<td class="gender">M</td>
+					<td class="date">23/12/2017</td>
+					<td class="weight">3,860</td>
+					<td class="height">52</td>
+					<td class="name">Kenneth</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 4 -->
+				<tr>
+					<td class="competitor">Eugene</td>
+					<td class="gender">M</td>
+					<td class="date">25/12/2017</td>
+					<td class="weight">4,050</td>
+					<td class="height">51</td>
+					<td class="name">Paul</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 5 -->
+				<tr>
+					<td class="competitor">Martin</td>
+					<td class="gender">F</td>
+					<td class="date">28/12/2017</td>
+					<td class="weight">3,650</td>
+					<td class="height">51</td>
+					<td class="name">Debora</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 6 -->
+				<tr>
+					<td class="competitor">Steve</td>
+					<td class="gender">M</td>
+					<td class="date">27/12/2017</td>
+					<td class="weight">3,995</td>
+					<td class="height">53,5</td>
+					<td class="name">Timothy</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 7 -->
+				<tr>
+					<td class="competitor">Henry</td>
+					<td class="gender">M</td>
+					<td class="date">29/12/2017</td>
+					<td class="weight">3,900</td>
+					<td class="height">52,5</td>
+					<td class="name">James</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 8 -->
+				<tr>
+					<td class="competitor">Bart</td>
+					<td class="gender">M</td>
+					<td class="date">25/12/2017</td>
+					<td class="weight">3,650</td>
+					<td class="height">51,5</td>
+					<td class="name">Raymond</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 9 -->
+				<tr>
+					<td class="competitor">Gonzalo</td>
+					<td class="gender">F</td>
+					<td class="date">27/12/2017</td>
+					<td class="weight">3,486</td>
+					<td class="height">51,5</td>
+					<td class="name">Cara</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 10 -->
+				<tr>
+					<td class="competitor">Jose</td>
+					<td class="gender">M</td>
+					<td class="date">26/12/2017</td>
+					<td class="weight">3,890</td>
+					<td class="height">54</td>
+					<td class="name">Ronald</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 11 -->
+				<tr>
+					<td class="competitor">Gloria</td>
+					<td class="gender">F</td>
+					<td class="date">24/12/2017</td>
+					<td class="weight">3,970</td>
+					<td class="height">55</td>
+					<td class="name">Rosemary</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 12 -->
+				<tr>
+					<td class="competitor">Sebastian</td>
+					<td class="gender">M</td>
+					<td class="date">25/12/2017</td>
+					<td class="weight">3,725</td>
+					<td class="height">53</td>
+					<td class="name">Brian</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 13 -->
+				<tr>
+					<td class="competitor">Emily</td>
+					<td class="gender">F</td>
+					<td class="date">29/12/2017</td>
+					<td class="weight">3,950</td>
+					<td class="height">52</td>
+					<td class="name">Edith</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 14 -->
+				<tr>
+					<td class="competitor">Keila</td>
+					<td class="gender">F</td>
+					<td class="date">29/12/2017</td>
+					<td class="weight">3,673</td>
+					<td class="height">50,8</td>
+					<td class="name">Janice</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 15 -->
+				<tr>
+					<td class="competitor">James</td>
+					<td class="gender">M</td>
+					<td class="date">26/12/2017</td>
+					<td class="weight">3,831</td>
+					<td class="height">53,1</td>
+					<td class="name">Christopher</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 16 -->
+				<tr>
+					<td class="competitor">Michelle</td>
+					<td class="gender">F</td>
+					<td class="date">26/12/2017</td>
+					<td class="weight">3,790</td>
+					<td class="height">50,1</td>
+					<td class="name">Juliana</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 17 -->
+				<tr>
+					<td class="competitor">Margaret</td>
+					<td class="gender">F</td>
+					<td class="date">22/12/2017</td>
+					<td class="weight">3,690</td>
+					<td class="height">50,9</td>
+					<td class="name">Cheryl</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 18 -->
+				<tr>
+					<td class="competitor">Regina</td>
+					<td class="gender">M</td>
+					<td class="date">29/12/2017</td>
+					<td class="weight">3,599</td>
+					<td class="height">51,9</td>
+					<td class="name">Tyson</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 19 -->
+				<tr>
+					<td class="competitor">Elsie</td>
+					<td class="gender">M</td>
+					<td class="date">02/01/2018</td>
+					<td class="weight">4,100</td>
+					<td class="height">53</td>
+					<td class="name">Michael</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 20 -->
+				<tr>
+					<td class="competitor">Richard</td>
+					<td class="gender">F</td>
+					<td class="date">28/12/2017</td>
+					<td class="weight">3,713</td>
+					<td class="height">51,2</td>
+					<td class="name">Bradly</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 21 -->
+				<tr>
+					<td class="competitor">Jane</td>
+					<td class="gender">F</td>
+					<td class="date">27/12/2017</td>
+					<td class="weight">3,900</td>
+					<td class="height">54</td>
+					<td class="name">Maya</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 22 -->
+				<tr>
+					<td class="competitor">Jim</td>
+					<td class="gender">F</td>
+					<td class="date">28/12/2017</td>
+					<td class="weight">3,350</td>
+					<td class="height">51</td>
+					<td class="name">Dixie</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 23 -->
+				<tr>
+					<td class="competitor">Stephany</td>
+					<td class="gender">F</td>
+					<td class="date">20/12/2017</td>
+					<td class="weight">2,950</td>
+					<td class="height">49</td>
+					<td class="name">Shirley</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 24 -->
+				<tr>
+					<td class="competitor">Eric</td>
+					<td class="gender">M</td>
+					<td class="date">1/1/2018</td>
+					<td class="weight">3,500</td>
+					<td class="height">51</td>
+					<td class="name">Matthew</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 25 -->
+				<tr>
+					<td class="competitor">Michael</td>
+					<td class="gender">M</td>
+					<td class="date">28/12/2017</td>
+					<td class="weight">4,200</td>
+					<td class="height">51</td>
+					<td class="name">Daniel</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 26 -->
+				<tr>
+					<td class="competitor">Ana</td>
+					<td class="gender">F</td>
+					<td class="date">26/12/2017</td>
+					<td class="weight">3,815</td>
+					<td class="height">52,3</td>
+					<td class="name">Connie</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 27 -->
+				<tr>
+					<td class="competitor">Mitchell</td>
+					<td class="gender">M</td>
+					<td class="date">29/12/2017</td>
+					<td class="weight">3,777</td>
+					<td class="height">51,8</td>
+					<td class="name">Jay</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 28 -->
+				<tr>
+					<td class="competitor">Donald</td>
+					<td class="gender">M</td>
+					<td class="date">05/01/2018</td>
+					<td class="weight">3,900</td>
+					<td class="height">54</td>
+					<td class="name">Andrew</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 29 -->
+				<tr>
+					<td class="competitor">Lisa</td>
+					<td class="gender">M</td>
+					<td class="date">28/12/2017</td>
+					<td class="weight">3,800</td>
+					<td class="height">52</td>
+					<td class="name">Alvin</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 30 -->
+				<tr>
+					<td class="competitor">Philip</td>
+					<td class="gender">F</td>
+					<td class="date">27/12/2017</td>
+					<td class="weight">3,900</td>
+					<td class="height">51</td>
+					<td class="name">Christina</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 31 -->
+				<tr>
+					<td class="competitor">Ryan</td>
+					<td class="gender">F</td>
+					<td class="date">29/12/2017</td>
+					<td class="weight">3,700</td>
+					<td class="height">51</td>
+					<td class="name">Alisha</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 32 -->
+				<tr>
+					<td class="competitor">Bob</td>
+					<td class="gender">F</td>
+					<td class="date">31/12/2017</td>
+					<td class="weight">3,669</td>
+					<td class="height">50</td>
+					<td class="name">Barbara</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 33 -->
+				<tr>
+					<td class="competitor">William</td>
+					<td class="gender">F</td>
+					<td class="date">30/12/2017</td>
+					<td class="weight">3,710</td>
+					<td class="height">53</td>
+					<td class="name">Alicia</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 34 -->
+				<tr>
+					<td class="competitor">Nick</td>
+					<td class="gender">M</td>
+					<td class="date">18/12/2017</td>
+					<td class="weight">4,098</td>
+					<td class="height">48</td>
+					<td class="name">Jonathan</td>
+					<td class="points"></td>
+				</tr>
+				<!-- Competitor 35 -->
+				<tr>
+					<td class="competitor">Enrique</td>
+					<td class="gender">F</td>
+					<td class="date">1/1/2018</td>
+					<td class="weight">3,820</td>
+					<td class="height">54</td>
+					<td class="name">Edythe</td>
+					<td class="points"></td>
+				</tr>
+				<!-- dummy 
+				<tr>
+					<td class="competitor"></td>
+					<td class="gender"></td>
+					<td class="date"></td>
+					<td class="weight"></td>
+					<td class="height"></td>
+					<td class="name"></td>
+					<td class="points"></td>
+				</tr>-->
+			</table>
+		</div>
+		<div>
+			<table id="baby_data">
+				<tr>
+					<!-- complete here the baby data -->
+					<td class="competitor">Born baby data</td>
+					<td class="gender">M</td>
+					<td class="date">31/12/2017</td>
+					<td class="weight">3,780</td>
+					<td class="height">54</td>
+					<td class="name">Earl</td>
+				</tr>
+			</table>
+		</div>
+		<div class="rules">
+			<p><h4>Point distribution</h4>
+				Gender: 5 points for correct answer<br />
+				Name: each letter correct gives you <strong>2</strong> points (you may give a maximum amount of letters)<br />
+				Weight: ranking with the number of competitors <strong>x 2</strong> (weight is given as X,XXX kg)<br />
+				Length: ranking with the number of competitors <strong>x 2</strong> (length is given as XX,X cm)<br />
+				Date: correct year 2 points, correct month 5 points, correct day 10 points<br />
+			</p>
+			<p><h4>Extra information:</h4>
+				I've put a multiplier for the person that was the closest for the weight and lenght of the baby, but if you have a lot of competitors the score you got from the weight and lenght will strongly influence the final result, so it's something to bear in mind.<br />
+			</p>
+			<p><h4>Reward:</h4>
+				(to complete.)
+			</p>
+		</div>
+		 <script type="text/javascript" language="javascript">
+			window.onload = function(){
+				calculate();
+			};
+		</script>
+	</body>
+</html>
